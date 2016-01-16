@@ -1,0 +1,101 @@
+#!perl
+
+# DATE
+# VERSION
+
+use 5.010;
+use strict;
+use warnings;
+use Log::Any '$log';
+
+use App::lcpan::Daemon;
+use Perinci::CmdLine::Any;
+
+our %SPEC;
+
+$SPEC{app} = {
+    v => 1.1,
+    args => {
+        %App::lcpan::common_args,
+        ports => {
+            'x.name.is_plural' => 1,
+            schema => ['array*', of=>'str*'],
+            default => ['127.0.0.1:8001'],
+        },
+        unix_sockets => {
+            'x.name.is_plural' => 1,
+            schema => ['array*', of=>'str*'],
+            default => [],
+        },
+        daemonize => {
+            schema => 'bool',
+            default => 0,
+        },
+    },
+};
+sub app {
+    require App::lcpan::Daemon;
+    require Perinci::Access::Schemeless;
+    require Perinci::Access::Simple::Server::Socket;
+
+    my %args = @_;
+
+    App::lcpan::Daemon::_init(
+        map {$_=>$args{$_}} keys %App::lcpan::common_args,
+    );
+
+    my $pa = Perinci::Access::Schemeless->new(
+        package_prefix => 'App::lcpan::Daemon',
+    );
+
+    my $server = Perinci::Access::Simple::Server::Socket->new(
+        ports                   => $args{ports},
+        unix_sockets            => $args{unix_sockets},
+        daemonize               => $args{daemonize},
+        riap_client             => $pa,
+    );
+    $server->run;
+
+    [200];
+}
+
+Perinci::CmdLine::Any->new(
+    url => '/main/app',
+)->run;
+
+# ABSTRACT: Access lcpan over Riap::Simple
+# PODNAME:
+
+=head1 SYNOPSIS
+
+Start the server:
+
+ % lcpand-simple
+
+Then you can use any L<Riap> client to query the server, e.g. L<App::riap>:
+
+ % riap riap+tcp://127.0.0.1:8001/
+ riap / > ls
+ riap / > authors --help
+ riap / > authors PERLA%
+
+Raw protocol:
+
+ % telnet localhost 8001
+ Trying ::1...
+ Trying 127.0.0.1...
+ Connected to localhost.
+ Escape character is '^]'.
+
+ j{"action":"list","uri":"/"}
+ j[200,"OK (list action)",["author_dists","author_mods","author_rdeps","author_rels","authors","authors_by_dist_count","authors_by_mod_count","authors_by_rdep_count","authors_by_rel_count","deps","dist2rel","distmods","dists","dists_by_dep_count","dzil_authors_by_bundle_count","dzil_authors_by_plugin_count","dzil_authors_by_role_count","dzil_bundles","dzil_bundles_by_rdep_count","dzil_plugins","dzil_plugins_by_rdep_count","dzil_roles","dzil_roles_by_rdep_count","mod2dist","mod2rel","mods","mods_by_rdep_count","mods_from_same_dist","modules","namespaces","rdeps","releases","rels","stats"],{"riap.v":1.1}]
+
+ j{"action":"call","uri":"/authors","args":{"query":["PERLA%"]}}
+ j[200,"OK",["ARYEH","PERLANCAR"],{"riap.v":1.1}]
+
+
+=head1 SEE ALSO
+
+L<lcpan>
+
+L<Riap::Simple>
