@@ -6,7 +6,7 @@ package App::lcpan::Daemon;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any::IfLOG '$log';
+use Log::ger;
 
 use App::lcpan ();
 
@@ -21,7 +21,7 @@ sub _init {
         require PERLANCAR::Module::List;
         no strict 'refs';
 
-        $log->tracef("Enumerating functions ...");
+        log_trace("Enumerating functions ...");
         my $mods = PERLANCAR::Module::List::list_modules(
             "App::lcpan::Cmd::", {list_modules=>1});
 
@@ -36,10 +36,10 @@ sub _init {
             # filesystem), so we exclude all functions that have the tags
             # 'write-to-db' or 'write-to-fs'.
             if (grep {/^write-to-fs/} @{ $meta->{tags} }) {
-                $log->info("Skipped %s (has write-to-fs tag)", $mod);
+                log_info("Skipped %s (has write-to-fs tag)", $mod);
                 next;
             } elsif (grep {/^write-to-db/} @{ $meta->{tags} }) {
-                $log->info("Skipped %s (has write-to-db tag)", $mod);
+                log_info("Skipped %s (has write-to-db tag)", $mod);
                 next;
             }
 
