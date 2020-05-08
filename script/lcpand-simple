@@ -1,6 +1,8 @@
 #!perl
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010;
@@ -61,6 +63,8 @@ sub app {
 
 Perinci::CmdLine::Any->new(
     url => '/main/app',
+    config_filename => ['lcpand-simple.conf', 'lcpan.conf'],
+    log => 1,
 )->run;
 
 # ABSTRACT: Access lcpan over Riap::Simple
